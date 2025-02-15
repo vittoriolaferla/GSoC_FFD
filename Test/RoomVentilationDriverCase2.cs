@@ -203,12 +203,13 @@ namespace FastFluidSolver
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            string baseDirectory = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
+            string baseDirectory = "/cluster/home/vlaferla/GSoC_FFD";
 
             // Create a new parent directory to store all VTK files from this run under the base directory.
             // The folder name includes a timestamp so that each run is stored separately.
             string parentOutputDir = Path.Combine(
-                baseDirectory,
+            baseDirectory
+,
                 "simulation_output",
                 DateTime.Now.ToString("yyyyMMdd_HHmmss"));
             Directory.CreateDirectory(parentOutputDir);
