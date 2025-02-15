@@ -204,7 +204,7 @@ namespace FastFluidSolver
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
             // Define the base directory as "../../../../../" relative to the current working directory.
-            string baseDirectorySimulation = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../../"));
+            string baseDirectorySimulation = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
 
              // Define the base directory as "../../../../../" relative to the current working directory.
             string baseDirectoryCSV = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
