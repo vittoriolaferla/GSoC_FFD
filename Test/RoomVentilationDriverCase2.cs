@@ -69,8 +69,8 @@ namespace FastFluidSolver
             return ventList;
         }
 
-        // Runs a simulation using the vent parameters from one CSV file.
-        static void RunSimulationForCSV(string ventParamFile)
+
+        static void RunSimulationForCSV(string ventParamFile, string parentOutputDir)
         {
             Console.WriteLine("Running simulation for CSV: " + ventParamFile);
 
@@ -79,8 +79,8 @@ namespace FastFluidSolver
             int Ny = 47; // Number of cells in y (excluding ghost cells)
             int Nz = 47; // Number of cells in z (excluding ghost cells)
             double length_x = 4.0, length_y = 5.0, length_z = 3.0;
-            double dt = 0.5, nu = 1e-2;
-            double tf = 400, t = 0;
+            double dt = 1, nu = 1e-2;
+            double tf = 5, t = 0;
 
             // Set initial conditions.
             double[,,] u0 = new double[Nx + 1, Ny + 2, Nz + 2];
@@ -108,10 +108,16 @@ namespace FastFluidSolver
             // Load vent parameters from the CSV file.
             var vents = LoadVentParameters(ventParamFile);
 
-            // Derive the output directory name from the CSV file name.
+            // Create a subdirectory for this CSV file's simulation.
             string csvName = Path.GetFileNameWithoutExtension(ventParamFile);
-            string outputDirectory = csvName;
+            string outputDirectory = Path.Combine(parentOutputDir, csvName);
             Directory.CreateDirectory(outputDirectory);
+
+            // Create subdirectories for final and intermediate output.
+            string finalDirectory = Path.Combine(outputDirectory, "final");
+            string intermediateDirectory = Path.Combine(outputDirectory, "intermediate");
+            Directory.CreateDirectory(finalDirectory);
+            Directory.CreateDirectory(intermediateDirectory);
 
             // Loop over each vent parameter and instantiate the vent.
             foreach (var vent in vents)
@@ -166,8 +172,9 @@ namespace FastFluidSolver
             PostProcessor pp = new PostProcessor(ffd, omega);
 
             int tstep = 0;
-            pp.export_data_vtk(Path.Combine(outputDirectory, $"roomVentilation_{tstep}.vtk"), 0, false);
-            pp.export_geometry_vtk(Path.Combine(outputDirectory, "roomVentilation_geometry.vtk"), 0);
+            // Export initial data and geometry to the final directory.
+            pp.export_data_vtk(Path.Combine(finalDirectory, $"roomVentilation_{tstep}.vtk"), 0, false);
+            pp.export_geometry_vtk(Path.Combine(finalDirectory, "roomVentilation_geometry.vtk"), 0);
 
             // Time-stepping loop.
             while (t < tf)
@@ -177,7 +184,14 @@ namespace FastFluidSolver
 
                 Console.WriteLine("Time t = {0}", t);
                 ffd.time_step(f_x, f_y, f_z);
-                pp.export_data_vtk(Path.Combine(outputDirectory, $"roomVentilation_{tstep}.vtk"), t, false);
+
+                // 1) Export final velocity & pressure to the final directory:
+                pp.export_data_vtk(Path.Combine(finalDirectory,
+                   $"roomVentilation_{tstep}.vtk"), t, false);
+
+                // 2) Export the intermediate velocity to the intermediate directory:
+                pp.export_intermediate_vtk(Path.Combine(intermediateDirectory,
+                   $"roomVentilation_intermediate_{tstep}.vtk"), t, false);
             }
 
             Console.WriteLine("Simulation for CSV " + ventParamFile + " completed.");
@@ -189,14 +203,29 @@ namespace FastFluidSolver
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            // Specify the folder containing CSV files.
-            string csvFolder = "csv_files/";
+            // Define the base directory as "../../../../../" relative to the current working directory.
+            string baseDirectorySimulation = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../../"));
+
+             // Define the base directory as "../../../../../" relative to the current working directory.
+            string baseDirectoryCSV = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
+
+            // Create a new parent directory to store all VTK files from this run under the base directory.
+            // The folder name includes a timestamp so that each run is stored separately.
+            string parentOutputDir = Path.Combine(
+                baseDirectorySimulation,
+                "simulation_output",
+                DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+            Directory.CreateDirectory(parentOutputDir);
+            Console.WriteLine("Output directory for simulation run: " + parentOutputDir);
+
+            // Specify the folder containing CSV files, assumed to be at "../../../../../csv_files/"
+            string csvFolder = Path.Combine(baseDirectoryCSV, "csv_files");
             string[] csvFiles = Directory.GetFiles(csvFolder, "*.csv");
 
             // Loop over each CSV file and run the simulation.
             foreach (var csvFile in csvFiles)
             {
-                RunSimulationForCSV(csvFile);
+                RunSimulationForCSV(csvFile, parentOutputDir);
             }
 
             Console.WriteLine("All simulations completed.");

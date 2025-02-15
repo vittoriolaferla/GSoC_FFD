@@ -64,6 +64,11 @@ namespace FastFluidSolver
         private double hz;   //spacing in x coordinate direction
         public double nu;    //fluid viscosity
 
+        // In FluidSolver.cs, near the top of the class:
+        public double[,,] u_intermediate;
+        public double[,,] v_intermediate;
+        public double[,,] w_intermediate;
+
         private Domain omega;
 
         /// <summary>
@@ -102,13 +107,15 @@ namespace FastFluidSolver
                 {
                     for (int k = 0; k < Nz; k++)
                     {
-                        double x = (i - 0.5) * hx;
-                        p[i, j, k] = -x;
-                        //p[i,j,k] = 0;
+                        double x = (i - 0.01) * hx;
+                        //p[i, j, k] = -x;
+                        p[i, j, k] = 101325;
                         //p[i, j, k] = Math.Sin(Math.PI / omega.length_x * x);
                     }
                 }
             }
+
+
 
             u = new double[u0.GetLength(0), u0.GetLength(1), u0.GetLength(2)];
             v = new double[v0.GetLength(0), v0.GetLength(1), v0.GetLength(2)];
@@ -118,6 +125,12 @@ namespace FastFluidSolver
             v_old = new double[v.GetLength(0), v.GetLength(1), v.GetLength(2)];
             w_old = new double[w.GetLength(0), w.GetLength(1), w.GetLength(2)];
             p_old = new double[p.GetLength(0), p.GetLength(1), p.GetLength(2)];
+
+            // Allocate the intermediate arrays
+            u_intermediate = new double[u0.GetLength(0),  u0.GetLength(1), u0.GetLength(2)];
+            v_intermediate = new double[ v0.GetLength(0), v0.GetLength(1), v0.GetLength(2)];
+            w_intermediate = new double[w0.GetLength(0), w0.GetLength(1), w0.GetLength(2)];
+
 
             Array.Copy(u0, 0, u, 0, u0.Length);
             Array.Copy(v0, 0, v, 0, v0.Length);
@@ -933,162 +946,262 @@ namespace FastFluidSolver
             }
         }
 
-        /// <summary>
-        /// Applies the boundary conditions.
-        /// </summary>
-        /// <remarks>The staggered grid makes this the longest part of the code.</remarks>
         private void apply_boundary_conditions_list()
         {
             /****************************************************************
             * 6 faces, +x, -x, +y, -y, +z, -z
             *
-            * For velocity normal to face, simply prescribe value, for other
-            * velocities prescribe average of a point inside the domain and
-            * a ghost point outside the domain
+            * For velocity normal to face, simply prescribe value,
+            * for other velocities prescribe average of a point inside the domain and
+            * a ghost point outside the domain or set to zero for no-slip conditions.
             ***************************************************************/
 
+            // Definisci la cella di interesse
+            const int target_i = 20;
+            const int target_j = 20;
+            const int target_k = 0;
+
+
+            // Applicazione delle condizioni al contorno per le facce +x e -x
             foreach (int[] indices in omega.normal_x_list)
             {
-                int i = indices[0];
-                int j = indices[1];
-                int k = indices[2];
-                int direction = indices[3];
-
-                if (omega.obstacle_cells[i, j, k] != 1)
-                {
-                    if (direction == -1)//-x face
-                    {
-                        p[i - 1, j, k] = p[i, j, k];
-
-                        if (omega.outflow_boundary_x[i, j, k] == 1)
-                        {
-                            u[i - 1, j, k] = u[i, j, k];
-                            v[i - 1, j, k] = v[i, j, k];
-                            w[i - 1, j, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i - 1, j, k] = omega.boundary_u[i - 1, j, k];
-                            v[i - 1, j, k] = 2 * omega.boundary_v[i - 1, j, k] - v[i, j, k];
-                            w[i - 1, j, k] = 2 * omega.boundary_w[i - 1, j, k] - w[i, j, k];
-                        }
-                    }
-
-                    if (direction == 1)//+x face
-                    {
-                        p[i + 1, j, k] = p[i, j, k];
-
-                        if (omega.outflow_boundary_x[i, j, k] == 1)
-                        {
-                            u[i, j, k] = u[i - 1, j, k];
-                            v[i + 1, j, k] = v[i, j, k];
-                            w[i + 1, j, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j, k] = omega.boundary_u[i, j, k];
-                            v[i + 1, j, k] = 2 * omega.boundary_v[i + 1, j, k] - v[i, j, k];
-                            w[i + 1, j, k] = 2 * omega.boundary_w[i + 1, j, k] - w[i, j, k];
-                        }
-                    }
-                }
+                ApplyBoundaryForFace(indices, FaceDirection.X, target_i, target_j, target_k);
             }
 
+            // Applicazione delle condizioni al contorno per le facce +y e -y
             foreach (int[] indices in omega.normal_y_list)
             {
-                int i = indices[0];
-                int j = indices[1];
-                int k = indices[2];
-                int direction = indices[3];
-
-                if (omega.obstacle_cells[i, j, k] != 1)
-                {
-                    if (direction == -1)//-x face
-                    {
-                        p[i, j - 1, k] = p[i, j, k];
-
-                        if (omega.outflow_boundary_y[i, j, k] == 1)
-                        {
-                            u[i, j - 1, k] = u[i, j, k];
-                            v[i, j - 1, k] = v[i, j, k];
-                            w[i, j - 1, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j - 1, k] = 2 * omega.boundary_u[i, j - 1, k] - u[i, j, k];
-                            v[i, j - 1, k] = omega.boundary_v[i, j - 1, k];
-                            w[i, j - 1, k] = 2 * omega.boundary_w[i, j - 1, k] - w[i, j, k];
-                        }
-                    }
-
-                    if (direction == 1)//+y face
-                    {
-                        p[i, j + 1, k] = p[i, j, k];
-
-                        if (omega.outflow_boundary_y[i, j, k] == 1)
-                        {
-                            u[i, j + 1, k] = u[i, j, k];
-                            v[i, j, k] = v[i, j - 1, k];
-                            w[i, j + 1, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j + 1, k] = 2 * omega.boundary_u[i, j + 1, k] - u[i, j, k];
-                            v[i, j, k] = omega.boundary_v[i, j, k];
-                            w[i, j + 1, k] = 2 * omega.boundary_w[i, j + 1, k] - w[i, j, k];
-                        }
-                    }
-                }
+                ApplyBoundaryForFace(indices, FaceDirection.Y, target_i, target_j, target_k);
             }
 
+            // Applicazione delle condizioni al contorno per le facce +z e -z
             foreach (int[] indices in omega.normal_z_list)
             {
-                int i = indices[0];
-                int j = indices[1];
-                int k = indices[2];
-                int direction = indices[3];
+                ApplyBoundaryForFace(indices, FaceDirection.Z, target_i, target_j, target_k);
+            }
 
-                if (omega.obstacle_cells[i, j, k] != 1)
+            // TO DO: ADD IN EDGE AND CORNER CASES
+        }
+
+        /// <summary>
+        /// Enum to represent the direction of the face.
+        /// </summary>
+        private enum FaceDirection
+        {
+            X,
+            Y,
+            Z
+        }
+
+        /// <summary>
+        /// Applies boundary conditions for a specific face.
+        /// </summary>
+        /// <param name="indices">Array containing [i, j, k, direction]</param>
+        /// <param name="face">The face direction (X, Y, Z)</paxram>
+        /// <param name="target_i">Target grid index i for logging</param>
+        /// <param name="target_j">Target grid index j for logging</param>
+        /// <param name="target_k">Target grid index k for logging</param>
+        private void ApplyBoundaryForFace(int[] indices, FaceDirection face, int target_i, int target_j, int target_k)
+        {
+            int i = indices[0];
+            int j = indices[1];
+            int k = indices[2];
+            int direction = indices[3]; // -1 for negative face, +1 for positive face
+
+            // Verifica se la cella è un ostacolo
+            if (omega.obstacle_cells[i, j, k] == 1)
+                return;
+
+            switch (face)
+            {
+                case FaceDirection.X:
+                    ApplyBoundaryForXFace(i, j, k, direction, target_i, target_j, target_k);
+                    break;
+                case FaceDirection.Y:
+                    ApplyBoundaryForYFace(i, j, k, direction, target_i, target_j, target_k);
+                    break;
+                case FaceDirection.Z:
+                    ApplyBoundaryForZFace(i, j, k, direction, target_i, target_j, target_k);
+                    break;
+            }
+        }
+
+        private void ApplyBoundaryForXFace(int i, int j, int k, int direction, int target_i, int target_j, int target_k)
+        {
+            if (direction == -1) // -x face
+            {
+                // Prescrive la pressione
+                p[i - 1, j, k] = p[i, j, k];
+
+                if (omega.outflow_boundary_x[i, j, k] == 1) // Outflow
                 {
-                    if (direction == -1)//-x face
-                    {
-                        p[i, j, k - 1] = p[i, j, k];
+                    u[i - 1, j, k] = u[i, j, k];
+                    v[i - 1, j, k] = v[i, j, k];
+                    w[i - 1, j, k] = w[i, j, k];
+                    //  LogBoundaryCondition("Outflow -x", i - 1, j, k, u[i - 1, j, k], v[i - 1, j, k], w[i - 1, j, k], target_i, target_j, target_k);
+                }
+                else // Inflow
+                {
+                    u[i - 1, j, k] = omega.boundary_u[i, j, k];
+                    v[i - 1, j, k] = omega.boundary_v[i, j, k];
+                    w[i - 1, j, k] = omega.boundary_w[i, j, k];
 
-                        if (omega.outflow_boundary_z[i, j, k] == 1)
-                        {
-                            u[i, j, k - 1] = u[i, j, k];
-                            v[i, j, k - 1] = v[i, j, k];
-                            w[i, j, k - 1] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j, k - 1] = 2 * omega.boundary_u[i, j, k - 1] - u[i, j, k];
-                            v[i, j, k - 1] = 2 * omega.boundary_v[i, j, k - 1] - v[i, j, k];
-                            w[i, j, k - 1] = omega.boundary_w[i, j, k - 1];
-                        }
+                    //  LogBoundaryCondition("Inflow -x", i - 1, j, k, u[i - 1, j, k], v[i - 1, j, k], w[i - 1, j, k], target_i, target_j, target_k);
+                }
+            }
+            else if (direction == 1) // +x face
+            {
+                // Prescrive la pressione
+                p[i + 1, j, k] = p[i, j, k];
+
+                if (omega.outflow_boundary_x[i, j, k] == 1) // Outflow
+                {
+                    u[i, j, k] = u[i - 1, j, k];
+                    v[i + 1, j, k] = v[i, j, k];
+                    w[i + 1, j, k] = w[i, j, k];
+                    //  LogBoundaryCondition("Outflow +x", i, j, k, u[i, j, k], v[i + 1, j, k], w[i + 1, j, k], target_i, target_j, target_k);
+                }
+                else // Inflow
+                {
+                    u[i, j, k] = omega.boundary_u[i, j, k];
+                    v[i + 1, j, k] = omega.boundary_v[i, j, k];
+                    w[i + 1, j, k] = omega.boundary_w[i, j, k];
+                    // LogBoundaryCondition("Inflow +x", i, j, k, u[i, j, k], v[i + 1, j, k], w[i + 1, j, k], target_i, target_j, target_k);
+                }
+            }
+        }
+
+        private void ApplyBoundaryForYFace(int i, int j, int k, int direction, int target_i, int target_j, int target_k)
+        {
+            if (direction == -1) // -y face
+            {
+                // Prescrive la pressione
+                p[i, j - 1, k] = p[i, j, k];
+
+                if (omega.outflow_boundary_y[i, j, k] == 1) // Outflow
+                {
+                    u[i, j - 1, k] = u[i, j, k];
+                    v[i, j - 1, k] = v[i, j, k];
+                    w[i, j - 1, k] = w[i, j, k];
+                    //    LogBoundaryCondition("Outflow -y", i, j - 1, k, u[i, j - 1, k], v[i, j - 1, k], w[i, j - 1, k], target_i, target_j, target_k);
+                }
+                else // Inflow
+                {
+                    u[i, j - 1, k] = omega.boundary_u[i, j, k];
+                    v[i, j - 1, k] = omega.boundary_v[i, j, k];
+                    w[i, j - 1, k] = omega.boundary_w[i, j, k];
+                    //  LogBoundaryCondition("Inflow -y", i, j - 1, k, u[i, j - 1, k], v[i, j - 1, k], w[i, j - 1, k], target_i, target_j, target_k);
+                }
+            }
+            else if (direction == 1) // +y face
+            {
+                // Prescrive la pressione
+                p[i, j + 1, k] = p[i, j, k];
+
+                if (omega.outflow_boundary_y[i, j, k] == 1) // Outflow
+                {
+                    u[i, j + 1, k] = u[i, j, k];
+                    v[i, j, k] = v[i, j - 1, k];
+                    w[i, j + 1, k] = w[i, j, k];
+                    // LogBoundaryCondition("Outflow +y", i, j + 1, k, u[i, j + 1, k], v[i, j, k], w[i, j + 1, k], target_i, target_j, target_k);
+                }
+                else // Inflow
+                {
+                    u[i, j + 1, k] = omega.boundary_u[i, j, k];
+                    v[i, j, k] = omega.boundary_v[i, j, k];
+                    w[i, j + 1, k] = omega.boundary_w[i, j, k];
+                    //LogBoundaryCondition("Inflow +y", i, j + 1, k, u[i, j + 1, k], v[i, j, k], w[i, j + 1, k], target_i, target_j, target_k);
+                }
+            }
+        }
+
+        private void ApplyBoundaryForZFace(int i, int j, int k, int direction, int target_i, int target_j, int target_k)
+        {
+            if (direction == -1) // -z face
+            {
+                // Prescrive la pressione
+                p[i, j, k - 1] = p[i, j, k];
+
+                if (omega.outflow_boundary_z[i, j, k] == 1) // Outflow
+                {
+                    u[i, j, k - 1] = u[i, j, k];
+                    v[i, j, k - 1] = v[i, j, k];
+                    w[i, j, k - 1] = w[i, j, k];
+                    //LogBoundaryCondition("Outflow -z", i, j, k - 1, u[i, j, k - 1], v[i, j, k - 1], w[i, j, k - 1], target_i, target_j, target_k);
+                }
+                else // Inflow
+                {
+
+                    if (omega.boundary_cells[i, j, k] == 2)
+                    {
+
+                        u[i, j, k - 1] = omega.boundary_u[i, j, k];
+                        v[i, j, k - 1] = omega.boundary_v[i, j, k];
+                        w[i, j, k - 1] = omega.boundary_w[i, j, k];
+                        //LogBoundaryCondition("Inflow -z, inlet cell", i, j, k, u[i, j, k - 1], v[i, j, k - 1], w[i, j, k - 1], target_i, target_j, target_k);
                     }
-
-                    if (direction == 1)//+z face
+                    else
                     {
-                        p[i, j, k + 1] = p[i, j, k];
-
-                        if (omega.outflow_boundary_z[i, j, k] == 1)
-                        {
-                            u[i, j, k + 1] = u[i, j, k];
-                            v[i, j, k + 1] = v[i, j, k];
-                            w[i, j, k] = w[i, j, k - 1];
-                        }
-                        else
-                        {
-                            u[i, j, k + 1] = 2 * omega.boundary_u[i, j, k + 1] - u[i, j, k];
-                            v[i, j, k + 1] = 2 * omega.boundary_v[i, j, k + 1] - v[i, j, k];
-                            w[i, j, k] = omega.boundary_w[i, j, k];
-                        }
+                        u[i, j, k - 1] = omega.boundary_u[i, j, k - 1];
+                        v[i, j, k - 1] = omega.boundary_v[i, j, k - 1];
+                        w[i, j, k - 1] = omega.boundary_w[i, j, k - 1];
+                        //LogBoundaryCondition("Inflow -z", i, j, k + 1, u[i, j, k + 1], v[i, j, k + 1], w[i, j, k], target_i, target_j, target_k);
                     }
                 }
             }
+            else if (direction == 1) // +z face
+            {
+                // Prescrive la pressione
+                p[i, j, k + 1] = p[i, j, k];
 
-            //TO DO: ADD IN EDGE AND CORNER CASES
+                if (omega.outflow_boundary_z[i, j, k] == 1) // Outflow
+                {
+                    u[i, j, k + 1] = u[i, j, k];
+                    v[i, j, k + 1] = v[i, j, k];
+                    w[i, j, k] = w[i, j, k - 1];
+                    //LogBoundaryCondition("Outflow +z", i, j, k + 1, u[i, j, k + 1], v[i, j, k + 1], w[i, j, k], target_i, target_j, target_k);
+                }
+                else // Inflow
+                {
+                    if (omega.boundary_cells[i, j, k] == 2)
+                    {
+                        u[i, j, k + 1] = omega.boundary_u[i, j, k];
+                        v[i, j, k + 1] = omega.boundary_v[i, j, k];
+                        w[i, j, k] = omega.boundary_w[i, j, k];
+                        //LogBoundaryCondition("Inflow +z, inlet cell", i, j, k, u[i, j, k + 1], v[i, j, k + 1], w[i, j, k], target_i, target_j, target_k);
+                    }
+                    else
+                    {
+                        u[i, j, k + 1] = omega.boundary_u[i, j, k + 1];
+                        v[i, j, k + 1] = omega.boundary_v[i, j, k + 1];
+                        w[i, j, k] = omega.boundary_w[i, j, k];
+                        // LogBoundaryCondition("Inflow +z", i, j, k + 1, u[i, j, k + 1], v[i, j, k + 1], w[i, j, k], target_i, target_j, target_k);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Logs the boundary condition assignments for debugging.
+        /// </summary>
+        /// <param name="conditionType">Type of boundary condition (e.g., "Inflow -x")</param>
+        /// <param name="i">Grid index i</param>
+        /// <param name="j">Grid index j</param>
+        /// <param name="k">Grid index k</param>
+        /// <param name="uVal">Velocity component u</param>
+        /// <param name="vVal">Velocity component v</param>
+        /// <param name="wVal">Velocity component w</param>
+        /// <param name="target_i">Target grid index i for logging</param>
+        /// <param name="target_j">Target grid index j for logging</param>
+        /// <param name="target_k">Target grid index k for logging</param>
+        private void LogBoundaryCondition(string conditionType, int i, int j, int k, double uVal, double vVal, double wVal, int target_i, int target_j, int target_k)
+        {
+            // Verifica se la cella corrente è quella di interesse
+            if (i == target_i && j == target_j && k == target_k)
+            {
+                // Sostituisci con un sistema di logging più robusto se necessario
+                Console.WriteLine($"{conditionType}: Set velocities at (i={i}, j={j}, k={k}) => u={uVal}, v={vVal}, w={wVal}");
+            }
         }
 
         /// <summary>
@@ -1273,6 +1386,13 @@ namespace FastFluidSolver
             diffuse(u_old, ref u, 2);
             diffuse(v_old, ref v, 3);
             diffuse(w_old, ref w, 4);
+
+            // **** ADD THIS: Copy the newly diffused velocities to the intermediate arrays,
+            // right before we call project() for the first time. ****
+            Array.Copy(u, 0, u_intermediate, 0, u.Length);
+            Array.Copy(v, 0, v_intermediate, 0, v.Length);
+            Array.Copy(w, 0, w_intermediate, 0, w.Length);
+
 
             project();
 
