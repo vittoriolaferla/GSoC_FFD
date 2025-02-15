@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J firstExample
-#SBATCH -e /cluster/home/vlaferla/fdsEulerJobs/64/firstExample.err
-#SBATCH -o /cluster/home/vlaferla/fdsEulerJobs/64/firstExample.log
+#SBATCH -e /cluster/home/vlaferla/Logs/error_log.err
+#SBATCH -o /cluster/home/vlaferla/Logs/logs.log
 #SBATCH --partition=bigmem.24h
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
