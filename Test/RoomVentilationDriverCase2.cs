@@ -203,23 +203,19 @@ namespace FastFluidSolver
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            // Define the base directory as "../../../../../" relative to the current working directory.
-            string baseDirectorySimulation = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
-
-             // Define the base directory as "../../../../../" relative to the current working directory.
-            string baseDirectoryCSV = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
+            string baseDirectory = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
 
             // Create a new parent directory to store all VTK files from this run under the base directory.
             // The folder name includes a timestamp so that each run is stored separately.
             string parentOutputDir = Path.Combine(
-                baseDirectorySimulation,
+                baseDirectory,
                 "simulation_output",
                 DateTime.Now.ToString("yyyyMMdd_HHmmss"));
             Directory.CreateDirectory(parentOutputDir);
             Console.WriteLine("Output directory for simulation run: " + parentOutputDir);
 
             // Specify the folder containing CSV files, assumed to be at "../../../../../csv_files/"
-            string csvFolder = Path.Combine(baseDirectoryCSV, "csv_files");
+            string csvFolder = Path.Combine(baseDirectory, "csv_files");
             string[] csvFiles = Directory.GetFiles(csvFolder, "*.csv");
 
             // Loop over each CSV file and run the simulation.
