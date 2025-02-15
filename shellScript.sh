@@ -18,8 +18,8 @@ start_time=$(date +%s)
 cd "$SLURM_SUBMIT_DIR"
 
 
-sudo mkdir /cluster/home/vlaferla/simulation_output          # if it doesn't exist already
-sudo chmod 777 /cluster/home/vlaferla/simulation_output 
+mkdir /cluster/home/vlaferla/simulation_output          # if it doesn't exist already
+chmod 777 /cluster/home/vlaferla/simulation_output 
 
 # Ensure the executable has proper permissions
 chmod +x /cluster/home/vlaferla/GSoC_FFD/bin/Release/net9.0/linux-x64/publish/GSoC_FFD
