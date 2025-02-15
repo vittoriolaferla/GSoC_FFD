@@ -79,8 +79,8 @@ namespace FastFluidSolver
             int Ny = 47; // Number of cells in y (excluding ghost cells)
             int Nz = 47; // Number of cells in z (excluding ghost cells)
             double length_x = 4.0, length_y = 5.0, length_z = 3.0;
-            double dt = 1, nu = 1e-2;
-            double tf = 5, t = 0;
+            double dt = 0.5, nu = 1e-2;
+            double tf = 400, t = 0;
 
             // Set initial conditions.
             double[,,] u0 = new double[Nx + 1, Ny + 2, Nz + 2];
