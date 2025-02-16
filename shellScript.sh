@@ -2,10 +2,10 @@
 #SBATCH -J firstExample
 #SBATCH -e /cluster/home/vlaferla/Logs/error_log.err
 #SBATCH -o /cluster/home/vlaferla/Logs/logs.log
-#SBATCH --partition=normal.24h
+#SBATCH --partition=ultramem.24h
 #SBATCH --ntasks=1
-#SBATCH --nodes=4
-#SBATCH --cpus-per-task=4
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=8
 
 # Define the timing output file
 TIMING_FILE=" /cluster/home/vlaferla/Logs/job_timing.log"
