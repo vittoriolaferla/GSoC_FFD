@@ -69,6 +69,9 @@ namespace FastFluidSolver
         public double[,,] v_intermediate;
         public double[,,] w_intermediate;
 
+        public double[,,] p_first;
+
+
         private Domain omega;
 
         /// <summary>
@@ -127,9 +130,12 @@ namespace FastFluidSolver
             p_old = new double[p.GetLength(0), p.GetLength(1), p.GetLength(2)];
 
             // Allocate the intermediate arrays
-            u_intermediate = new double[u0.GetLength(0),  u0.GetLength(1), u0.GetLength(2)];
-            v_intermediate = new double[ v0.GetLength(0), v0.GetLength(1), v0.GetLength(2)];
+            u_intermediate = new double[u0.GetLength(0), u0.GetLength(1), u0.GetLength(2)];
+            v_intermediate = new double[v0.GetLength(0), v0.GetLength(1), v0.GetLength(2)];
             w_intermediate = new double[w0.GetLength(0), w0.GetLength(1), w0.GetLength(2)];
+
+            p_first = new double[Nx, Ny, Nz];
+
 
 
             Array.Copy(u0, 0, u, 0, u0.Length);
@@ -1364,51 +1370,52 @@ namespace FastFluidSolver
             }
         }
 
-        /// <summary>
-        /// Perform a single time step. Add forces, diffuse, project, advect, project.
-        /// </summary>
-        /// <param name="f_x">x component of forcing term</param>
-        /// <param name="f_y">y component of forcing term</param>
-        /// <param name="f_z">z component of forcing term</param>
         public void time_step(double[,,] f_x, double[,,] f_y, double[,,] f_z)
         {
             apply_boundary_conditions_list();
 
+            // 1) Add forcing
             add_force(f_x, ref u);
             add_force(f_y, ref v);
             add_force(f_z, ref w);
 
+            // 2) Copy to old arrays
             Array.Copy(u, 0, u_old, 0, u.Length);
             Array.Copy(v, 0, v_old, 0, v.Length);
             Array.Copy(w, 0, w_old, 0, w.Length);
             Array.Copy(p, 0, p_old, 0, p.Length);
 
+            // 3) Diffuse
             diffuse(u_old, ref u, 2);
             diffuse(v_old, ref v, 3);
             diffuse(w_old, ref w, 4);
 
-            // **** ADD THIS: Copy the newly diffused velocities to the intermediate arrays,
-            // right before we call project() for the first time. ****
+            // 4) Copy to intermediate velocity arrays
             Array.Copy(u, 0, u_intermediate, 0, u.Length);
             Array.Copy(v, 0, v_intermediate, 0, v.Length);
             Array.Copy(w, 0, w_intermediate, 0, w.Length);
 
-
+            // 5) First Poisson projection
             project();
 
+            // **** Here's the key line: store the "first projection" pressure ****
+            Array.Copy(p, 0, p_first, 0, p.Length);
+
+            // 6) Copy final velocities / pressure into old
             Array.Copy(u, 0, u_old, 0, u.Length);
             Array.Copy(v, 0, v_old, 0, v.Length);
             Array.Copy(w, 0, w_old, 0, w.Length);
             Array.Copy(p, 0, p_old, 0, p.Length);
 
+            // 7) Advection
             advect(ref u, u_old, u_old, v_old, w_old, 2);
             advect(ref v, v_old, u_old, v_old, w_old, 3);
             advect(ref w, w_old, u_old, v_old, w_old, 4);
 
-            // apply_mass_correction(0);
-
+            // 8) Second Poisson projection
             project();
         }
+
 
         /// <summary>
         /// Solves the sparse banded system given by the finite difference method applied

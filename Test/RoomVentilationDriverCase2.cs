@@ -173,7 +173,7 @@ namespace FastFluidSolver
 
             int tstep = 0;
             // Export initial data and geometry to the final directory.
-            pp.export_data_vtk(Path.Combine(finalDirectory, $"roomVentilation_{tstep}.vtk"), 0, false);
+            //pp.export_data_vtk(Path.Combine(finalDirectory, $"roomVentilation_{tstep}.vtk"), 0, false);
             pp.export_geometry_vtk(Path.Combine(finalDirectory, "roomVentilation_geometry.vtk"), 0);
 
             // Time-stepping loop.
@@ -186,7 +186,7 @@ namespace FastFluidSolver
                 ffd.time_step(f_x, f_y, f_z);
 
                 // 1) Export final velocity & pressure to the final directory:
-                pp.export_data_vtk(Path.Combine(finalDirectory,
+                pp.export_first_projection_pressure_vtk(Path.Combine(finalDirectory,
                    $"roomVentilation_{tstep}.vtk"), t, false);
 
                 // 2) Export the intermediate velocity to the intermediate directory:

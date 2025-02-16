@@ -1,10 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "CzxS3cAqRQE=",
+  "dgSpecHash": "+xCMvCcdzoo=",
   "success": true,
   "projectFilePath": "/Users/vittorio/Desktop/GSoC_FFD_Euler/GSoC_FFD/GSoC_FFD.csproj",
   "expectedPackageFiles": [
-    "/Users/vittorio/.nuget/packages/mathnet.numerics/5.0.0/mathnet.numerics.5.0.0.nupkg.sha512"
+    "/Users/vittorio/.nuget/packages/mathnet.numerics/5.0.0/mathnet.numerics.5.0.0.nupkg.sha512",
+    "/Users/vittorio/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/9.0.0/microsoft.netcore.app.runtime.linux-x64.9.0.0.nupkg.sha512",
+    "/Users/vittorio/.nuget/packages/microsoft.aspnetcore.app.runtime.linux-x64/9.0.0/microsoft.aspnetcore.app.runtime.linux-x64.9.0.0.nupkg.sha512",
+    "/Users/vittorio/.nuget/packages/microsoft.netcore.app.host.linux-x64/9.0.0/microsoft.netcore.app.host.linux-x64.9.0.0.nupkg.sha512"
   ],
   "logs": []
 }

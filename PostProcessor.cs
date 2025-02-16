@@ -223,7 +223,7 @@ namespace FastFluidSolver
         }
 
 
-        public void export_intermediate_vtk(string fname, double time, Boolean cell_centred)
+        public void export_intermediate_vtk(string fname, double time, bool cell_centred)
         {
             int Nx = fs.u_intermediate.GetLength(0);
             int Ny = fs.u_intermediate.GetLength(1);
@@ -298,6 +298,103 @@ namespace FastFluidSolver
                 }
             }
         }
+
+        /// <summary>
+        /// Exports the 'p_first' array (pressure after the first Poisson projection)
+        /// to a VTK file in rectilinear grid format, without interpolation.
+        /// </summary>
+        /// <param name="fname">Output file name (e.g. "roomVentilation_first_1.vtk")</param>
+        /// <param name="time">Current simulation time</param>
+        public void export_first_projection_pressure_vtk(string fname, double time, bool cell_centred)
+        {
+            // 1) Dimensions of the p_first array
+            int Nx;
+            int Ny = fs.p_first.GetLength(1);
+            int Nz = fs.p_first.GetLength(2);
+
+            // 2) Grid spacing
+            double hx = omega.hx;
+            double hy = omega.hy;
+            double hz = omega.hz;
+
+
+            if (cell_centred)
+            {
+                Nx = omega.Nx - 2;
+                Ny = omega.Ny - 2;
+                Nz = omega.Nz - 2;
+
+            }
+            else
+            {
+
+                Nx = omega.Nx - 1;
+                Ny = omega.Ny - 1;
+                Nz = omega.Nz - 1;
+            }
+
+            using (StreamWriter sw = new StreamWriter(fname))
+            {
+                // -- VTK Header --
+                sw.WriteLine("# vtk DataFile Version 3.0");
+                sw.WriteLine("First-projection pressure field");
+                sw.WriteLine("ASCII");
+                sw.WriteLine("DATASET RECTILINEAR_GRID");
+
+                // Optionally store the time in FieldData if you like
+                sw.WriteLine("FIELD FieldData 1");
+                sw.WriteLine("TIME 1 1 double");
+                sw.WriteLine("{0}", time);
+
+                // 3) Rectilinear grid dimensions
+                //    Often, for an Nx×Ny×Nz 3D array,
+                //    you specify DIMENSIONS = (Nx+1)×(Ny+1)×(Nz+1) if you treat them as cell-based.
+                //    Or you keep it Nx,Ny,Nz if they're truly point-based. 
+                //    Here we mirror the approach in export_uninterpolated_vtk:
+                sw.WriteLine("DIMENSIONS {0} {1} {2}", Nx + 1, Ny + 1, Nz + 1);
+
+                // 4) X_COORDINATES, Y_COORDINATES, Z_COORDINATES
+                sw.WriteLine("X_COORDINATES {0} double", Nx + 1);
+                for (int i = 0; i < Nx + 1; i++)
+                {
+                    sw.WriteLine("{0}", (i - 1) * hx);
+                }
+
+                sw.WriteLine("Y_COORDINATES {0} double", Ny + 1);
+                for (int j = 0; j < Ny + 1; j++)
+                {
+                    sw.WriteLine("{0}", (j - 1) * hy);
+                }
+
+                sw.WriteLine("Z_COORDINATES {0} double", Nz + 1);
+                for (int k = 0; k < Nz + 1; k++)
+                {
+                    sw.WriteLine("{0}", (k - 1) * hz);
+                }
+
+                // 5) We’ll store the data as CELL_DATA or POINT_DATA. 
+                //    In export_uninterpolated_vtk, we used "CELL_DATA Nx*Ny*Nz".
+                //    We'll do the same here for consistency.
+                sw.WriteLine("CELL_DATA {0}", Nx * Ny * Nz);
+
+                // 6) Write 'p_first' as a scalar field
+                sw.WriteLine("SCALARS p_first double 1");
+                sw.WriteLine("LOOKUP_TABLE default");
+
+                for (int k = 0; k < Nz; k++)
+                {
+                    for (int j = 0; j < Ny; j++)
+                    {
+                        for (int i = 0; i < Nx; i++)
+                        {
+                            sw.Write("{0} ", fs.p_first[i, j, k]);
+                        }
+                    }
+                }
+                sw.WriteLine(); // End the line for clarity
+            }
+        }
+
 
 
 
