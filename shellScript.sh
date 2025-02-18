@@ -6,6 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=8
+#SBATCH --time=6:0:0
 
 # Define the timing output file
 TIMING_FILE=" /cluster/home/vlaferla/Logs/job_timing.log"
