@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GSoC_FFD")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9d55baee0e38bef9eea6035ed004026e01dded4a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+368fa087daa4da37350fb12f52164065fb87e13c")]
 [assembly: System.Reflection.AssemblyProductAttribute("GSoC_FFD")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GSoC_FFD")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
